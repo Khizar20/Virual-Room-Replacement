@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Customization</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #d2b48c;
+            --secondary-color: #9c8b70;
+            --background-color: #f5f5f0;
+            --text-color: #4a4a4a;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        body {
+            font-family: 'Raleway', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+        h1, h2 {
+            text-align: center;
+            color: var(--secondary-color);
+        }
+        .image-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .image-box {
+            width: 48%;
+            background-color: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: var(--box-shadow);
+        }
+        #imagePreview, #resultImage {
+            width: 100%;
+            height: 400px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .options-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .option-box {
+            background-color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--box-shadow);
+            width: 45%;
+        }
+        #floorTextureOptions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .texture-option {
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            border-radius: 50%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .texture-option:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .texture-option.selected {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+        #customizeRoom {
+            display: block;
+            margin: 20px auto;
+            padding: 12px 24px;
+            font-size: 16px;
+            color: white;
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        #customizeRoom:hover:not(:disabled) {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        #customizeRoom:disabled {
+            background-color: #d1d1d1;
+            cursor: not-allowed;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #imageUpload, #customTextureUpload {
+            display: none;
+        }
+        .upload-btn {
+            display: block;
+            width: 200px;
+            margin: 20px auto;
+            padding: 12px;
+            text-align: center;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 600;
+        }
+        .upload-btn:hover {
+            background-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        #wallColorPicker {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Room Customization</h1>
+    <label for="imageUpload" class="upload-btn">Upload Room Image</label>
+    <input type="file" id="imageUpload" accept="image/*">
+    <div class="image-container">
+        <div class="image-box">
+            <h2>Original Image</h2>
+            <img id="imagePreview" alt="Original Room" style="display: none;">
+        </div>
+        <div class="image-box">
+            <h2>Customized Room</h2>
+            <img id="resultImage" alt="Customized Room" style="display: none;">
+        </div>
+    </div>
+    <div class="options-container">
+        <div class="option-box">
+            <h2>Wall Color</h2>
+            <input type="color" id="wallColorPicker" value="#F5DEB3">
+        </div>
+        <div class="option-box">
+            <h2>Floor Texture</h2>
+            <div id="floorTextureOptions"></div>
+            <label for="customTextureUpload" class="upload-btn">Upload Custom Texture</label>
+            <input type="file" id="customTextureUpload" accept="image/*">
+        </div>
+    </div>
+    <button id="customizeRoom" disabled>Customize Room</button>
+    <div class="loading">
+        <div class="loading-spinner"></div>
+        <p>Customizing your room...</p>
+    </div>
+
+    <script>
+        let uploadedImage = null;
+        let selectedWallColor = null;
+        let selectedFloorTexture = null;
+        let customTexture = null;
+
+        document.getElementById('imageUpload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                uploadedImage = file;
+                const preview = document.getElementById('imagePreview');
+                preview.src = URL.createObjectURL(file);
+                preview.style.display = 'block';
+                updateCustomizeButton();
+            }
+        });
+
+        fetch('/textures')
+            .then(response => response.json())
+            .then(textures => {
+                const floorTextureOptions = document.getElementById('floorTextureOptions');
+                textures.forEach(texture => {
+                    const img = document.createElement('img');
+                    img.src = `/static/textures/${texture}`;
+                    img.classList.add('texture-option');
+                    img.addEventListener('click', () => selectFloorTexture(texture, img));
+                    floorTextureOptions.appendChild(img);
+                });
+            })
+            .catch(error => console.error('Error:', error));
+
+        document.getElementById('wallColorPicker').addEventListener('change', function(event) {
+            selectedWallColor = event.target.value;
+            updateCustomizeButton();
+        });
+
+        document.getElementById('customTextureUpload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                customTexture = file;
+                selectedFloorTexture = 'custom';
+                document.querySelectorAll('.texture-option').forEach(el => el.classList.remove('selected'));
+                updateCustomizeButton();
+            }
+        });
+
+        function selectFloorTexture(texture, element) {
+            selectedFloorTexture = texture;
+            customTexture = null;
+            document.querySelectorAll('.texture-option').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            updateCustomizeButton();
+        }
+
+        function updateCustomizeButton() {
+            document.getElementById('customizeRoom').disabled = !uploadedImage || !(selectedWallColor || selectedFloorTexture);
+        }
+
+        document.getElementById('customizeRoom').addEventListener('click', function() {
+            if (uploadedImage && (selectedWallColor || selectedFloorTexture)) {
+                const formData = new FormData();
+                formData.append('image', uploadedImage);
+                if (selectedWallColor) formData.append('wallColor', selectedWallColor);
+                if (selectedFloorTexture === 'custom') {
+                    formData.append('customTexture', customTexture);
+                } else if (selectedFloorTexture) {
+                    formData.append('floorTexture', selectedFloorTexture);
+                }
+
+                document.querySelector('.loading').style.display = 'block';
+                document.getElementById('customizeRoom').disabled = true;
+
+                fetch('/customize_room', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const resultImage = document.getElementById('resultImage');
+                    resultImage.src = `data:image/png;base64,${data.result}`;
+                    resultImage.style.display = 'block';
+                })
+                .catch(error => console.error('Error:', error))
+                .finally(() => {
+                    document.querySelector('.loading').style.display = 'none';
+                    document.getElementById('customizeRoom').disabled = false;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
